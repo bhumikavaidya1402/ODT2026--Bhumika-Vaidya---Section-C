@@ -1,0 +1,33 @@
+import pygame
+import serial
+import time
+
+PORT = "COM11"
+BAUD = 115200
+
+pygame.init()
+pygame.joystick.init()
+
+if pygame.joystick.get_count() == 0:
+    print("No controller found")
+    raise SystemExit
+
+js = pygame.joystick.Joystick(0)
+js.init()
+
+print("Controller:", js.get_name())
+
+ser = serial.Serial(PORT, BAUD, timeout=0.02)
+time.sleep(2)
+
+while True:
+    pygame.event.pump()
+
+    lx = int(js.get_axis(0) * 100)
+    ly = int(js.get_axis(1) * 100)
+
+    msg = f"LX:{lx},LY:{ly}\n"
+    print(msg.strip())
+    ser.write(msg.encode())
+
+    time.sleep(0.02)
