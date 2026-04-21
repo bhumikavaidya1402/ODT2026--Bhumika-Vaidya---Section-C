@@ -1,0 +1,241 @@
+from machine import Pin, I2C
+import neopixel
+import time
+import random
+from i2c_lcd import I2cLcd
+
+
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+lcd = I2cLcd(i2c, 0x27, 2, 16)
+ir = Pin(26, Pin.IN)
+button1 = Pin(16, Pin.IN, Pin.PULL_UP)
+button2 = Pin(17, Pin.IN, Pin.PULL_UP)
+ldr1 = Pin(32, Pin.IN)   # target 1 head
+ldr2 = Pin(33, Pin.IN)   # target 1 body
+ldr3 = Pin(34, Pin.IN)   # target 2 head
+ldr4 = Pin(35, Pin.IN)   # target 2 body
+laser = Pin(12, Pin.OUT)
+laser.on()
+buzzer = Pin(15, Pin.OUT)
+buzzer.off()
+ring = neopixel.NeoPixel(Pin(14), 16)
+strip1 = neopixel.NeoPixel(Pin(25), 60)
+strip2 = neopixel.NeoPixel(Pin(27), 60)
+
+level_hits = [3, 6, 9, 12, 16]      #list for levels
+
+def clear_led():            #function to easily turn leds off
+    for i in range(16):
+        ring[i] = (0, 0, 0)
+    ring.write()
+
+    for i in range(60):
+        strip1[i] = (0, 0, 0)
+        strip2[i] = (0, 0, 0)
+    strip1.write()
+    strip2.write()
+    
+
+                #start
+clear_led()
+
+while True:
+    lcd.clear()
+    lcd.putstr("PICK CONTROLLER")
+
+    while ir.value() == 0:
+        pass
+
+               # READY
+    lcd.clear()
+    lcd.putstr("READY")
+    for i in range(16):
+        ring[i] = (255, 100, 0)
+    ring.write()
+    time.sleep(1)
+
+               # STEADY
+    lcd.clear()
+    lcd.putstr("STEADY")
+    for i in range(16):
+        if i < 8:
+            ring[i] = (255, 255, 0)
+        else:
+            ring[i] = (0, 0, 0)
+    ring.write()
+    time.sleep(1)
+
+               # GO
+    lcd.clear()
+    lcd.putstr("GO!")
+    for j in range(3):
+        for i in range(16):
+            ring[i] = (0, 255, 0)
+        ring.write()
+        time.sleep(0.1)
+
+        for i in range(16):
+            ring[i] = (0, 0, 0)
+        ring.write()
+        time.sleep(0.1)
+
+    score = 0
+    level = 0
+    won = True
+
+
+    while level < 5:           #levels
+
+        hits = level_hits[level]
+
+        sequence = []
+        for i in range(hits):
+            sequence.append(random.randint(1, 2))
+
+        lcd.clear()
+        lcd.putstr("REMEMBER")
+        lcd.move_to(0, 1)
+        lcd.putstr(",".join(str(x) for x in sequence)[:16])
+        time.sleep(2)
+
+
+        for i in range(hits):
+
+            target = sequence[i]
+
+            lcd.clear()
+            lcd.putstr("SHOOT:")
+            lcd.move_to(0, 1)
+            lcd.putstr(str(target))
+
+            while ldr1.value() == 0 or ldr2.value() == 0 or ldr3.value() == 0 or ldr4.value() == 0:
+                pass
+
+            while True:
+                if target == 1:
+                    if ldr1.value() == 0:
+                        score += 5
+                        lcd.clear()
+                        lcd.putstr("HEADSHOT +5")
+                        buzzer.on(); time.sleep(0.15); buzzer.off()
+                        time.sleep(0.1)
+                        buzzer.on(); time.sleep(0.15); buzzer.off()
+                        break
+
+                    elif ldr2.value() == 0:
+                        score += 3
+                        lcd.clear()
+                        lcd.putstr("SHOT +3")
+                        buzzer.on(); time.sleep(0.2); buzzer.off()
+                        break
+
+                elif target == 2:
+                    if ldr3.value() == 0:
+                        score += 5
+                        lcd.clear()
+                        lcd.putstr("HEADSHOT +5")
+                        buzzer.on(); time.sleep(0.15); buzzer.off()
+                        time.sleep(0.1)
+                        buzzer.on(); time.sleep(0.15); buzzer.off()
+                        break
+
+                    elif ldr4.value() == 0:
+                        score += 3
+                        lcd.clear()
+                        lcd.putstr("SHOT +3")
+                        buzzer.on(); time.sleep(0.2); buzzer.off()
+                        break
+
+            while ldr1.value() == 0 or ldr2.value() == 0 or ldr3.value() == 0 or ldr4.value() == 0:
+                pass
+
+            time.sleep(0.2)
+
+                        #replication
+        lcd.clear()
+        lcd.putstr("REPLICATE")
+
+        correct = True
+
+        for i in range(len(sequence)):
+
+            while True:
+                if button1.value() == 0:
+                    user = 1
+                    buzzer.on(); time.sleep(0.05); buzzer.off()
+                    while button1.value() == 0:
+                        pass
+                    break
+
+                elif button2.value() == 0:
+                    user = 2
+                    buzzer.on(); time.sleep(0.05); buzzer.off()
+                    while button2.value() == 0:
+                        pass
+
+            if user == sequence[i]:
+                if i < 16:
+                    ring[i] = (0, 255, 0)
+
+                strip1[i] = (0, 255, 0)
+                strip2[i] = (0, 255, 0)
+
+                ring.write()
+                strip1.write()
+                strip2.write()
+
+            else:
+                if i < 16:
+                    ring[i] = (255, 0, 0)
+
+                strip1[i] = (255, 0, 0)
+                strip2[i] = (255, 0, 0)
+
+                ring.write()
+                strip1.write()
+                strip2.write()
+
+                correct = False
+                break
+
+            time.sleep(0.3)
+
+        if correct:
+            lcd.clear()
+            lcd.putstr("LEVEL UP")
+            time.sleep(1)
+            clear_led()
+            level += 1
+        else:
+            won = False
+            lcd.clear()
+            lcd.putstr("GAME OVER")
+            break
+
+    lcd.clear()
+    lcd.putstr("SCORE:")
+    lcd.move_to(0, 1)
+    lcd.putstr(str(score))
+
+    if won and level == 5:
+        for j in range(14):
+            for i in range(60):
+                strip1[i] = (0, 255, 0)
+                strip2[i] = (0, 255, 0)
+            strip1.write()
+            strip2.write()
+            time.sleep(0.07)
+
+            clear_led()
+            time.sleep(0.04)
+
+        time.sleep(3)
+        clear_led()
+
+        lcd.clear()
+        lcd.putstr("PLACE THE")
+        lcd.move_to(0, 1)
+        lcd.putstr("CONTROLLER --->")
+
+    while ir.value() == 1:
+        pass
