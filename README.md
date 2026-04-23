@@ -1,10 +1,10 @@
 **Project Title**
 
-[Enter your project name here]
+Bullseye: A Laser Shooting Game
 
 **📌 Project Overview**
 
-[Provide a short description of your project]
+The game is an interactive laser shooting experience where the player aims at targets using a controller and must remember the sequence of targets hit. As levels progress, the sequence gets longer, challenging both the player’s accuracy and memory skills.
 
 
 **📂 Repository Structure**
@@ -28,4 +28,4 @@ Media → Weekly progress and final output
 
 
 **👥 Team Members**
-[Name]
+Baratth T & Bhumika V
